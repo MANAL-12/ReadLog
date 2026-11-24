@@ -3,6 +3,18 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Cookie settings for local development and production
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000,
+  };
+};
+
 // REGISTER A NEW USER
 const registerUser = async (req, res) => {
   try {
@@ -102,12 +114,7 @@ const loginUser = async (req, res) => {
       }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    res.cookie('token', token, getCookieOptions());
 
     return res.status(200).json({
       message: 'Login successful!',
@@ -157,11 +164,10 @@ const getMe = async (req, res) => {
 
 // LOGOUT USER
 const logoutUser = (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-  });
+  const cookieOptions = getCookieOptions();
+  delete cookieOptions.maxAge;
+
+  res.clearCookie('token', cookieOptions);
 
   return res.status(200).json({
     message: 'Logged out successfully!',
